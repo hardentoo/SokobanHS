@@ -17,10 +17,20 @@ module Main (
 ) where
 
 main :: IO()
-main = putStrLn(show $ solve ps)
+main = putStrLn(show $ solve microban3)
+--main = debugSolve ps
 
-ps :: PuzzleState
-ps = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
+microban1 :: PuzzleState
+microban1 = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
+
+microban2 :: PuzzleState
+microban2 = readPuzzleState ["######","#    #","# #@ #","# $* #","# .* #","#    #","######"]
+
+microban3 :: PuzzleState
+microban3 = readPuzzleState ["####","###  ####","#     $ #","# #  #$ #","# . .#@ #","#########"]
+
+sasquatch1 :: PuzzleState
+sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
 
 data Move = U | D | L | R deriving (Eq,Show)
 
@@ -29,7 +39,10 @@ data PuzzleBoard = Board {
                       goals :: [Pos]
                    } deriving (Eq,Show)
 
-data PuzzleState = State PuzzleBoard Crates Worker deriving (Eq,Show)
+data PuzzleState = State PuzzleBoard Crates Worker deriving Show
+
+instance Eq PuzzleState where
+   State pb1 cs1 w1 == State pb2 cs2 w2 = (w1 == w2) && ((qsort cs1) == (qsort cs2))
 
 type Moves = [Move]
 type Pos = (Int, Int)
@@ -68,59 +81,82 @@ readPuzzleState ss = readPuzzleState' emptyState (0,0) ss
 -- instead let's try just checking the crates next to the worker.
 -- These should find the deadlocks quicker in crates we just moved
 -- and we'll find anything else eventually :)
+--
+-- What we're doing here is trying to reduce the search space by not
+-- waiting until ALL the crates are stuck before deciding that there's
+-- no point continuing
 deadlocked :: PuzzleState -> Move -> Bool
 deadlocked (State pb cs w) m = cInPos && (or [sic, tw, ft])
    where
       c = go w m
       cInPos = c `elem` cs
       sic = stuckInCorner pb c m
-      tw = twoOnWall pb c
-      ft = fourTogether pb c
+      tw = twoOnWall pb cs c m
+      ft = fourTogether pb cs c m
 
 stuckInCorner :: PuzzleBoard -> Pos -> Move -> Bool
-stuckInCorner pb c m = (not onGoal) && (wallNext && (wallAbove || wallBelow))
+stuckInCorner pb c m = (not onGoal) && wallNext && (wallPerp1 || wallPerp2)
    where
       Board{walls = ws, goals = gs} = pb
       wallNext  = (go c m) `elem` ws
-      wallAbove = (go c mr) `elem` ws
-      wallBelow = (go c ml) `elem` ws
+      wallPerp1 = (go c mp1) `elem` ws
+      wallPerp2 = (go c mp2) `elem` ws
       onGoal    = c `elem` gs
-      [mr,ml]   = perpendicular m
+      [mp1,mp2]   = perpendicular m
 
-twoOnWall :: PuzzleBoard -> Pos -> Bool
-twoOnWall pb c = False
+twoOnWall :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
+twoOnWall pb cs c m = wallNext && ((cratePerp1 && wallNextCratePerp1 && (not (onGoalC && onGoalCP1))) ||
+                                (cratePerp2 && wallNextCratePerp2 && (not (onGoalC && onGoalCP2))))
+   where
+      Board{walls = ws, goals = gs} = pb
+      wallNext           = (go c m) `elem` ws
+      cratePerp1         = (go c mp1) `elem` cs
+      wallNextCratePerp1 = (go (go c mp1) m) `elem` ws
+      cratePerp2         = (go c mp2) `elem` cs
+      wallNextCratePerp2 = (go (go c mp2) m) `elem` ws
+      onGoalC            = c `elem` gs
+      onGoalCP1          = (go c mp1) `elem` gs
+      onGoalCP2          = (go c mp2) `elem` gs
+      [mp1,mp2]          = perpendicular m
 
-fourTogether :: PuzzleBoard -> Pos -> Bool
-fourTogether pm c = False
+fourTogether :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
+fourTogether pm cs c m = False
 
 perpendicular :: Move -> [Move]
 perpendicular m = case (m `elem` [U,D]) of
    True -> [L,R]
    False -> [U,D]
---   where
---      crateAbove
---      crateBelow
---      crateLeft
---      crateRight
 
---deadlockedCrate p c m
---   where
---      cratesNear (x,y) = [c | c@(x',y') <- cs, ((x==x') && (abs (x-x') < 2)) || ((abs (y-y') < 2) && (y==y'))]
+-- ######################################### --
+--  solve function and supporting functions  --
+-- ######################################### --
 
--- A Crate is deadlocked if it's not on a goal and it is blocked
--- by a wall opposite any open space...
--- There are other more complex stuck states (e.g. blocked by another
--- deadlocked crate but I'm hoping I shouldn't hit those)
---deadlockedCrate :: PuzzleState -> Crate -> Move -> Bool
---deadlockedCrate (State pb cs w) c m = 
---   where 
+-- debugSolve just prints the number of states visited so far
+-- every time we finish processing a "level" of the breadth first
+-- search
+debugSolve :: PuzzleState -> IO()
+debugSolve p = debugSolve' ([(p,[])],[p])
+
+debugSolve' :: ([(PuzzleState, Moves)],[PuzzleState]) -> IO()
+debugSolve' (pms,pss) = do
+   fs <- return(findSolutions pms)
+   if fs == []
+      then do putStrLn(show(length(pss)))
+              gpms <- return(generate pms pss)
+              if (gpms == (pms,pss))
+                  then putStrLn("No Solutions, current states visited: " ++ show(pss))
+                  else debugSolve' (gpms)
+      else putStrLn(show(map reverse fs))
 
 solve :: PuzzleState -> [Moves]
 solve p = solve' ([(p,[])],[p])
 
 solve' :: ([(PuzzleState, Moves)],[PuzzleState]) -> [Moves]
 solve' (pms,pss) = case (findSolutions pms) of
-   [] -> solve' (generate pms pss)
+   [] -> let gpms = generate pms pss
+            in case (gpms == (pms,pss)) of
+                  True -> error "No Solutions"
+                  False -> solve' (generate pms pss)
    (ms:mss) -> map reverse (ms:mss)
 
 findSolutions :: [(PuzzleState, Moves)] -> [Moves]
@@ -130,29 +166,21 @@ findSolutions ((p,m):pms) = case (isSolved p) of
    False -> findSolutions pms
 
 generate :: [(PuzzleState, Moves)] -> [PuzzleState] -> ([(PuzzleState, Moves)],[PuzzleState])
-generate pms seen
-   | newStates == [] = error "Puzzle Can't be solved"
-   | otherwise       = (newStates, newSeen)
-      where
-         newStates = [(newP, (m:ms)) | (p,ms) <- pms,
-                                       (newP, m) <- (moves p),
-                                       not (deadlocked newP m),
-                                       not (newP `elem` seen)]
-         newSeen = addNewStates newStates seen
+generate [] seen = ([],seen)
+generate ((ps,ms):pms) seen = ((new_states ++ generated_states), new_seen_complete) 
+   where
+      new_states = [(newP, (m:ms)) | (newP,m) <- moves ps, not (newP `elem` seen), not (deadlocked newP m)]
+      new_seen = addNewStates new_states seen
+      (generated_states, new_seen_complete) = generate pms new_seen
 
 addNewStates :: [(PuzzleState, Moves)] -> [PuzzleState] -> [PuzzleState]
 addNewStates [] pss = pss
 addNewStates ((ps,ms):pms) pss = addNewStates pms (ps:pss) 
 
--- define isSolution and move, then we can start debugging :)
 isSolved :: PuzzleState -> Bool
-isSolved (State pb cs w) = (qsort cs) == (qsort ws)
+isSolved (State pb cs w) = (qsort cs) == (qsort gs)
    where
-      Board{goals = ws} = pb
-
----- ######### ----
-----  WORKING  ----
----- ######### ----
+      Board{goals = gs} = pb
 
 moves :: PuzzleState -> [(PuzzleState, Move)]
 moves ps = [ (ps', d) | d <- [U, D, L, R], ps' <- move ps d]
@@ -163,12 +191,16 @@ moves ps = [ (ps', d) | d <- [U, D, L, R], ps' <- move ps d]
 move :: PuzzleState -> Move -> [PuzzleState]
 move (State pb cs w) d
       | d1w = []
-      | d1c = moveCrate (State pb cs d1) d1 (go d1 d)
+      | d1c = case d2_blocked of
+                True  -> []
+                False -> moveCrate (State pb cs d1) d1 (go d1 d)
       | otherwise = [(State pb cs d1)]
    where
       d1  = go w d 
       d1w = d1 `elem` ws
       d1c = d1 `elem` cs
+      d2  = go d1 d
+      d2_blocked = (d2 `elem` ws) || (d2 `elem` cs)
       Board{walls = ws} = pb
 
 go :: Pos -> Move -> Pos
