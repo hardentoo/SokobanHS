@@ -20,18 +20,6 @@ main :: IO()
 main = putStrLn(show $ solve microban3)
 --main = debugSolve ps
 
-microban1 :: PuzzleState
-microban1 = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
-
-microban2 :: PuzzleState
-microban2 = readPuzzleState ["######","#    #","# #@ #","# $* #","# .* #","#    #","######"]
-
-microban3 :: PuzzleState
-microban3 = readPuzzleState ["####","###  ####","#     $ #","# #  #$ #","# . .#@ #","#########"]
-
-sasquatch1 :: PuzzleState
-sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
-
 data Move = U | D | L | R deriving (Eq,Show)
 
 data PuzzleBoard = Board {
@@ -94,6 +82,8 @@ deadlocked (State pb cs w) m = cInPos && (or [sic, tw, ft])
       tw = twoOnWall pb cs c m
       ft = fourTogether pb cs c m
 
+-- Simplest deadlock check; have we been dumb and pushed a crate into
+-- a corner that's not a goal
 stuckInCorner :: PuzzleBoard -> Pos -> Move -> Bool
 stuckInCorner pb c m = (not onGoal) && wallNext && (wallPerp1 || wallPerp2)
    where
@@ -104,6 +94,8 @@ stuckInCorner pb c m = (not onGoal) && wallNext && (wallPerp1 || wallPerp2)
       onGoal    = c `elem` gs
       [mp1,mp2]   = perpendicular m
 
+-- Another simple dealock case; have we got 2 crates together on a wall?
+-- If they're not both on goals we're stuffed
 twoOnWall :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
 twoOnWall pb cs c m = wallNext && ((cratePerp1 && wallNextCratePerp1 && (not (onGoalC && onGoalCP1))) ||
                                 (cratePerp2 && wallNextCratePerp2 && (not (onGoalC && onGoalCP2))))
@@ -119,16 +111,19 @@ twoOnWall pb cs c m = wallNext && ((cratePerp1 && wallNextCratePerp1 && (not (on
       onGoalCP2          = (go c mp2) `elem` gs
       [mp1,mp2]          = perpendicular m
 
+-- TODO: Complete this deadlock case
+--
+-- Deadlock case 3; Four crates together in a square. There's
+-- no escape unless they're all on goals.
 fourTogether :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
 fourTogether pm cs c m = False
 
-perpendicular :: Move -> [Move]
-perpendicular m = case (m `elem` [U,D]) of
-   True -> [L,R]
-   False -> [U,D]
-
 -- ######################################### --
+-- ######################################### --
+--                                           --
 --  solve function and supporting functions  --
+--                                           --
+-- ######################################### --
 -- ######################################### --
 
 -- debugSolve just prints the number of states visited so far
@@ -219,7 +214,11 @@ replaceFirst a b (x:xs)
    | otherwise = x:(replaceFirst a b xs)
 
 ---- ########### ----
+---- ########### ----
+----             ----
 ----  Utilities  ----
+----             ----
+---- ########### ----
 ---- ########### ----
 
 qsort :: Ord a => [a] -> [a]
@@ -227,4 +226,31 @@ qsort [] = []
 qsort (x:xs) = qsort [y | y <- xs, y <= x]
                 ++ [x] ++
                qsort [y | y <- xs, y > x]
+
+-- Simple utility function to find the moves perpendicular to the
+-- direction we just went - used in deadlock checking.
+perpendicular :: Move -> [Move]
+perpendicular m = case (m `elem` [U,D]) of
+   True -> [L,R]
+   False -> [U,D]
+
+-- ##################### --
+-- ##################### --
+--                       --
+--  Puzzles for testing  --
+--                       --
+-- ##################### --
+-- ##################### --
+
+microban1 :: PuzzleState
+microban1 = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
+
+microban2 :: PuzzleState
+microban2 = readPuzzleState ["######","#    #","# #@ #","# $* #","# .* #","#    #","######"]
+
+microban3 :: PuzzleState
+microban3 = readPuzzleState ["####","###  ####","#     $ #","# #  #$ #","# . .#@ #","#########"]
+
+sasquatch1 :: PuzzleState
+sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
 
