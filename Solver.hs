@@ -17,7 +17,7 @@ module Main (
 ) where
 
 main :: IO()
-main = putStrLn(show $ solve microban3)
+main = putStrLn(show $ solve microban10)
 --main = debugSolve ps
 
 data Move = U | D | L | R deriving (Eq,Show)
@@ -242,6 +242,9 @@ perpendicular m = case (m `elem` [U,D]) of
 -- ##################### --
 -- ##################### --
 
+sasquatch1 :: PuzzleState
+sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
+
 microban1 :: PuzzleState
 microban1 = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
 
@@ -251,6 +254,54 @@ microban2 = readPuzzleState ["######","#    #","# #@ #","# $* #","# .* #","#    
 microban3 :: PuzzleState
 microban3 = readPuzzleState ["####","###  ####","#     $ #","# #  #$ #","# . .#@ #","#########"]
 
-sasquatch1 :: PuzzleState
-sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
+microban4 :: PuzzleState
+microban4 = readPuzzleState ["########","#      #","# .**$@#","#      #","#####  #","    ####"]
+
+microban5 :: PuzzleState
+microban5 = readPuzzleState [" #######"," #     #"," # .$. #","## $@$ #","#  .$. #","#      #","########"]
+
+microban6 :: PuzzleState
+microban6 = readPuzzleState ["###### #####","#    ###   #","# $$     #@#","# $ #...   #","#   ########","#####"]
+
+microban7 :: PuzzleState
+microban7 = readPuzzleState ["#######","#     #","# .$. #","# $.$ #","# .$. #","# $.$ #","#  @  #","#######"]
+
+microban8 :: PuzzleState
+microban8 = readPuzzleState ["  ######","  # ..@#","  # $$ #","  ## ###","   # #","   # #","#### #","#    ##","# #   #","#   # #","###   #","  #####"]
+
+microban9 :: PuzzleState
+microban9 = readPuzzleState ["#####","#.  ##","#@$$ #","##   #"," ##  #","  ##.#","   ###"]
+
+microban10 :: PuzzleState
+microban10 = readPuzzleState ["      #####","      #.  #","      #.# #","#######.# #","# @ $ $ $ #","# # # # ###","#       #","#########"]
+
+microban11 :: PuzzleState
+microban11 = readPuzzleState ["  ######","  #    #","  # ##@##","### # $ #","# ..# $ #","#       #","#  ######","####"]
+
+microban12 :: PuzzleState
+microban12 = readPuzzleState ["#####","#   ##","# $  #","## $ ####"," ###@.  #","  #  .# #","  #     #","  #######"]
+
+microban13 :: PuzzleState
+microban13 = readPuzzleState ["####","#. ##","#.@ #","#. $#","##$ ###"," # $  #"," #    #"," #  ###"," ####"]
+
+microban14 :: PuzzleState
+microban14 = readPuzzleState ["#######","#     #","# # # #","#. $*@#","#   ###","#####"]
+
+microban15 :: PuzzleState
+microban15 = readPuzzleState ["     ###","######@##","#    .* #","#   #   #","#####$# #","    #   #","    #####"]
+
+microban16 :: PuzzleState
+microban16 = readPuzzleState [" ####"," #  ####"," #     ##","## ##   #","#. .# @$##","#   # $$ #","#  .#    #","##########"]
+
+microban17 :: PuzzleState
+microban17 = readPuzzleState ["#####","# @ #","#...#","#$$$##","#    #","#    #","######"]
+
+microban18 :: PuzzleState
+microban18 = readPuzzleState ["#######","#     #","#. .  #","# ## ##","#  $ #","###$ #","  #@ #","  #  #","  ####"]
+
+microban19 :: PuzzleState
+microban19 = readPuzzleState ["########","#   .. #","#  @$$ #","##### ##","   #  #","   #  #","   #  #","   ####"]
+
+microban20 :: PuzzleState
+microban20 = readPuzzleState ["#######","#     ###","#  @$$..#","#### ## #","  #     #","  #  ####","  #  #","  ####"]
 
