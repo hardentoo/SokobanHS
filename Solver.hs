@@ -17,7 +17,7 @@ module Main (
 ) where
 
 main :: IO()
-main = putStrLn(show $ solve microban10)
+main = putStrLn(show $ solve microban1)
 --main = debugSolve ps
 
 data Move = U | D | L | R deriving (Eq,Show)
@@ -29,6 +29,9 @@ data PuzzleBoard = Board {
 
 data PuzzleState = State PuzzleBoard Crates Worker deriving Show
 
+-- A simpler Eq case for PuzzleState because we only care about the
+-- locations of the crates and the worker. Everything else is always
+-- the same in the code below.
 instance Eq PuzzleState where
    State pb1 cs1 w1 == State pb2 cs2 w2 = (w1 == w2) && ((qsort cs1) == (qsort cs2))
 
@@ -74,49 +77,36 @@ readPuzzleState ss = readPuzzleState' emptyState (0,0) ss
 -- waiting until ALL the crates are stuck before deciding that there's
 -- no point continuing
 deadlocked :: PuzzleState -> Move -> Bool
-deadlocked (State pb cs w) m = cInPos && (or [sic, tw, ft])
+deadlocked (State pb cs w) m = cInPos && stuck
    where
       c = go w m
       cInPos = c `elem` cs
-      sic = stuckInCorner pb c m
-      tw = twoOnWall pb cs c m
-      ft = fourTogether pb cs c m
+      stuck = stuckCrate (State pb cs w) m
 
--- Simplest deadlock check; have we been dumb and pushed a crate into
--- a corner that's not a goal
-stuckInCorner :: PuzzleBoard -> Pos -> Move -> Bool
-stuckInCorner pb c m = (not onGoal) && wallNext && (wallPerp1 || wallPerp2)
+-- Simple deadlock check; have we been dumb and pushed a crate into
+-- a corner that's not a goal - we check for deadlock by checking either
+--  (1) a wall beyond and one on either of the two sides
+--  (2) anything that makes a square
+stuckCrate :: PuzzleState -> Move -> Bool
+stuckCrate (State pb cs w) m = notOnGoal && (inCorner || immovable)
    where
+      c = go w m
       Board{walls = ws, goals = gs} = pb
-      wallNext  = (go c m) `elem` ws
-      wallPerp1 = (go c mp1) `elem` ws
-      wallPerp2 = (go c mp2) `elem` ws
-      onGoal    = c `elem` gs
-      [mp1,mp2]   = perpendicular m
-
--- Another simple dealock case; have we got 2 crates together on a wall?
--- If they're not both on goals we're stuffed
-twoOnWall :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
-twoOnWall pb cs c m = wallNext && ((cratePerp1 && wallNextCratePerp1 && (not (onGoalC && onGoalCP1))) ||
-                                (cratePerp2 && wallNextCratePerp2 && (not (onGoalC && onGoalCP2))))
-   where
-      Board{walls = ws, goals = gs} = pb
-      wallNext           = (go c m) `elem` ws
-      cratePerp1         = (go c mp1) `elem` cs
-      wallNextCratePerp1 = (go (go c mp1) m) `elem` ws
-      cratePerp2         = (go c mp2) `elem` cs
-      wallNextCratePerp2 = (go (go c mp2) m) `elem` ws
-      onGoalC            = c `elem` gs
-      onGoalCP1          = (go c mp1) `elem` gs
-      onGoalCP2          = (go c mp2) `elem` gs
-      [mp1,mp2]          = perpendicular m
-
--- TODO: Complete this deadlock case
---
--- Deadlock case 3; Four crates together in a square. There's
--- no escape unless they're all on goals.
-fourTogether :: PuzzleBoard -> Crates -> Pos -> Move -> Bool
-fourTogether pm cs c m = False
+      wallBeyondCrate  = (go c m) `elem` ws
+      wallPerpCrate1   = (go c mp1) `elem` ws
+      wallPerpCrate2   = (go c mp2) `elem` ws
+      crateBeyondCrate = (go c m) `elem` cs
+      cratePerpCrate1  = (go c mp1) `elem` cs
+      cratePerpCrate2  = (go c mp2) `elem` cs
+      anyBeyondCrate   = wallBeyondCrate || crateBeyondCrate
+      anyPerpDiag1     = (wallPerpCrate1 || cratePerpCrate1) && diagExists1
+      anyPerpDiag2     = (wallPerpCrate2 || cratePerpCrate2) && diagExists2
+      diagExists1      = (go (go c m) mp1) `elem` (cs ++ ws)
+      diagExists2      = (go (go c m) mp2) `elem` (cs ++ ws)
+      [mp1,mp2]        = perpendicular m
+      notOnGoal        = not(c `elem` gs)
+      inCorner         = wallBeyondCrate && (wallPerpCrate1 || wallPerpCrate2)
+      immovable        = anyBeyondCrate && (anyPerpDiag1 || anyPerpDiag2)
 
 -- ######################################### --
 -- ######################################### --
@@ -242,9 +232,6 @@ perpendicular m = case (m `elem` [U,D]) of
 -- ##################### --
 -- ##################### --
 
-sasquatch1 :: PuzzleState
-sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
-
 microban1 :: PuzzleState
 microban1 = readPuzzleState ["####","# .#","#  ###","#*@  #","#  $ #","#  ###","####"]
 
@@ -304,4 +291,10 @@ microban19 = readPuzzleState ["########","#   .. #","#  @$$ #","##### ##","   # 
 
 microban20 :: PuzzleState
 microban20 = readPuzzleState ["#######","#     ###","#  @$$..#","#### ## #","  #     #","  #  ####","  #  #","  ####"]
+
+sasquatch1 :: PuzzleState
+sasquatch1 = readPuzzleState ["   ###","  ## # ####"," ##  ###  #","## $      #","#   @$ #  #","### $###  #","  #  #..  #"," ## ##.# ##"," #      ##"," #     ##"," #######"]
+
+sasquatch3 :: PuzzleState
+sasquatch3 = readPuzzleState ["           #####","          ##   #","          #    #","    ####  # $ ##","    #  ####$ $#","    #     $ $ #","   ## ## $ $ $#","   #  .#  $ $ #","   #  .#      #","##### #########","#.... @  #","#....    #","##  ######"," ####"]
 
